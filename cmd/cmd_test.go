@@ -85,10 +85,10 @@ func TestInitWatchdog(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
-func TestInitLog(t *testing.T) {
+func TestInitServer(t *testing.T) {
 	logger, _ := initLogger(context.Background(), level)
 	cfg := testInitConfig()
 
-	_, err := initLog(context.Background(), logger, cfg, port, nil, nil, nil)
+	_, err := initServer(context.Background(), logger, cfg, port, nil, nil, nil)
 	assert.Equal(t, nil, err)
 }

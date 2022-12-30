@@ -14,8 +14,8 @@ import (
 
 	"github.com/gerrittrigger/events/config"
 	"github.com/gerrittrigger/events/connect"
-	"github.com/gerrittrigger/events/log"
 	"github.com/gerrittrigger/events/queue"
+	"github.com/gerrittrigger/events/server"
 	"github.com/gerrittrigger/events/storage"
 	"github.com/gerrittrigger/events/watchdog"
 )
@@ -60,13 +60,13 @@ func Run(ctx context.Context) error {
 		return errors.Wrap(err, "failed to init watchdog")
 	}
 
-	l, err := initLog(ctx, logger, cfg, *listenPort, mq, st, wd)
+	s, err := initServer(ctx, logger, cfg, *listenPort, mq, st, wd)
 	if err != nil {
-		return errors.Wrap(err, "failed to init log")
+		return errors.Wrap(err, "failed to init server")
 	}
 
-	if err := runLog(ctx, logger, l); err != nil {
-		return errors.Wrap(err, "failed to run log")
+	if err := runServer(ctx, logger, s); err != nil {
+		return errors.Wrap(err, "failed to run server")
 	}
 
 	return nil
@@ -167,13 +167,13 @@ func initWatchdog(ctx context.Context, logger hclog.Logger, cfg *config.Config) 
 	return watchdog.New(ctx, c), nil
 }
 
-func initLog(ctx context.Context, logger hclog.Logger, cfg *config.Config, port int, mq queue.Queue, st storage.Storage,
-	wd watchdog.Watchdog) (log.Log, error) {
-	logger.Debug("cmd: initLog")
+func initServer(ctx context.Context, logger hclog.Logger, cfg *config.Config, port int, mq queue.Queue, st storage.Storage,
+	wd watchdog.Watchdog) (server.Server, error) {
+	logger.Debug("cmd: initServer")
 
 	var err error
 
-	c := log.DefaultConfig()
+	c := server.DefaultConfig()
 	if c == nil {
 		return nil, errors.New("failed to config")
 	}
@@ -189,35 +189,35 @@ func initLog(ctx context.Context, logger hclog.Logger, cfg *config.Config, port 
 		return nil, errors.Wrap(err, "failed to init connect")
 	}
 
-	return log.New(ctx, c), nil
+	return server.New(ctx, c), nil
 }
 
-func runLog(ctx context.Context, logger hclog.Logger, l log.Log) error {
-	logger.Debug("cmd: runLog")
+func runServer(ctx context.Context, logger hclog.Logger, srv server.Server) error {
+	logger.Debug("cmd: runServer")
 
-	if err := l.Init(ctx); err != nil {
+	if err := srv.Init(ctx); err != nil {
 		return errors.Wrap(err, "failed to init")
 	}
 
-	s := make(chan os.Signal, 1)
+	sig := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 
 	// kill (no param) default send syscanll.SIGTERM
 	// kill -2 is syscall.SIGINT
 	// kill -9 is syscall.SIGKILL but can"t be caught, so don't need add it
-	signal.Notify(s, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 
-	go func(c context.Context, l log.Log) {
-		logger.Debug("cmd: runLog: Run")
-		_ = l.Run(c)
-	}(ctx, l)
+	go func(c context.Context, s server.Server) {
+		logger.Debug("cmd: runServer: Run")
+		_ = s.Run(c)
+	}(ctx, srv)
 
-	go func(c context.Context, l log.Log, s chan os.Signal) {
-		logger.Debug("cmd: runLog: Deinit")
-		<-s
-		_ = l.Deinit(c)
+	go func(ctx context.Context, srv server.Server, sig chan os.Signal) {
+		logger.Debug("cmd: runServer: Deinit")
+		<-sig
+		_ = srv.Deinit(ctx)
 		done <- true
-	}(ctx, l, s)
+	}(ctx, srv, sig)
 
 	<-done
 
