@@ -57,7 +57,7 @@ func TestInitConnect(t *testing.T) {
 	logger, _ := initLogger(context.Background(), level)
 	cfg := testInitConfig()
 
-	_, _, err := initConnect(context.Background(), logger, cfg, port)
+	_, err := initConnect(context.Background(), logger, cfg)
 	assert.Equal(t, nil, err)
 }
 

@@ -102,27 +102,18 @@ func initConfig(_ context.Context, logger hclog.Logger, name string) (*config.Co
 	return c, nil
 }
 
-func initConnect(ctx context.Context, logger hclog.Logger, cfg *config.Config, port int) (connect.Http, connect.Ssh, error) {
+func initConnect(ctx context.Context, logger hclog.Logger, cfg *config.Config) (connect.Ssh, error) {
 	logger.Debug("cmd: initConnect")
 
-	hc := connect.DefaultHttpConfig()
-	if hc == nil {
-		return nil, nil, errors.New("failed to config http")
+	c := connect.DefaultSshConfig()
+	if c == nil {
+		return nil, errors.New("failed to config ssh")
 	}
 
-	hc.Config = *cfg
-	hc.Logger = logger
-	hc.Port = port
+	c.Config = *cfg
+	c.Logger = logger
 
-	sc := connect.DefaultSshConfig()
-	if sc == nil {
-		return nil, nil, errors.New("failed to config ssh")
-	}
-
-	sc.Config = *cfg
-	sc.Logger = logger
-
-	return connect.HttpNew(ctx, hc), connect.SshNew(ctx, sc), nil
+	return connect.SshNew(ctx, c), nil
 }
 
 func initQueue(ctx context.Context, logger hclog.Logger, cfg *config.Config) (queue.Queue, error) {
@@ -180,11 +171,12 @@ func initServer(ctx context.Context, logger hclog.Logger, cfg *config.Config, po
 
 	c.Config = *cfg
 	c.Logger = logger
+	c.Port = port
 	c.Queue = mq
 	c.Storage = st
 	c.Watchdog = wd
 
-	c.Http, c.Ssh, err = initConnect(ctx, logger, cfg, port)
+	c.Ssh, err = initConnect(ctx, logger, cfg)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init connect")
 	}

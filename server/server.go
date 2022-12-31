@@ -3,8 +3,14 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	nethttp "net/http"
+	"strconv"
 	"sync"
+	"time"
 
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/hashicorp/go-hclog"
 	"github.com/pkg/errors"
 
@@ -17,7 +23,10 @@ import (
 )
 
 const (
+	age     = 24 * time.Hour
 	counter = 2
+	header  = 1 << 20
+	timeout = 10 * time.Second
 )
 
 type Server interface {
@@ -28,21 +37,28 @@ type Server interface {
 
 type Config struct {
 	Config   config.Config
-	Http     connect.Http
 	Logger   hclog.Logger
+	Port     int
 	Queue    queue.Queue
 	Ssh      connect.Ssh
 	Storage  storage.Storage
 	Watchdog watchdog.Watchdog
 }
 
+type httpError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
 type server struct {
-	cfg *Config
+	cfg    *Config
+	engine *gin.Engine
 }
 
 func New(_ context.Context, cfg *Config) Server {
 	return &server{
-		cfg: cfg,
+		cfg:    cfg,
+		engine: nil,
 	}
 }
 
@@ -52,10 +68,6 @@ func DefaultConfig() *Config {
 
 func (s *server) Init(ctx context.Context) error {
 	s.cfg.Logger.Debug("log: Init")
-
-	if err := s.cfg.Http.Init(ctx); err != nil {
-		return errors.Wrap(err, "failed to init http")
-	}
 
 	if err := s.cfg.Queue.Init(ctx); err != nil {
 		return errors.Wrap(err, "failed to init queue")
@@ -73,6 +85,10 @@ func (s *server) Init(ctx context.Context) error {
 		return errors.Wrap(err, "failed to init watchdog")
 	}
 
+	if err := s.initRoute(ctx); err != nil {
+		return errors.Wrap(err, "failed to init route")
+	}
+
 	return nil
 }
 
@@ -83,7 +99,6 @@ func (s *server) Deinit(ctx context.Context) error {
 	_ = s.cfg.Storage.Deinit(ctx)
 	_ = s.cfg.Ssh.Deinit(ctx)
 	_ = s.cfg.Queue.Deinit(ctx)
-	_ = s.cfg.Http.Deinit(ctx)
 
 	return nil
 }
@@ -118,7 +133,7 @@ func (s *server) Run(ctx context.Context) error {
 
 	go func(ctx context.Context) {
 		defer wg.Done()
-		err = s.postEvent(ctx)
+		err = s.storeEvent(ctx)
 		if err != nil {
 			return
 		}
@@ -127,6 +142,45 @@ func (s *server) Run(ctx context.Context) error {
 	wg.Wait()
 
 	return err
+}
+
+func (s *server) initRoute(_ context.Context) error {
+	handler := func(ctx *gin.Context) {
+		var err error
+		q := ctx.Request.URL.Query().Get("q")
+		fmt.Printf("%v\n", q)
+		if err != nil {
+			ctx.JSON(nethttp.StatusNotFound, httpError{Code: nethttp.StatusNotFound, Message: err.Error()})
+			return
+		}
+
+		ctx.JSON(nethttp.StatusOK, events.Event{})
+	}
+
+	s.engine = gin.New()
+	if s.engine == nil {
+		return errors.New("failed to create gin")
+	}
+
+	s.engine.Use(cors.New(cors.Config{
+		AllowCredentials: true,
+		AllowHeaders:     []string{"*"},
+		AllowMethods:     []string{"GET"},
+		AllowOrigins:     []string{"*"},
+		AllowOriginFunc: func(origin string) bool {
+			return true
+		},
+		ExposeHeaders: []string{"Content-Type"},
+		MaxAge:        age,
+	}))
+
+	s.engine.Use(gin.Logger())
+	s.engine.Use(gin.Recovery())
+
+	e := s.engine.Group("/events")
+	e.GET("/", handler)
+
+	return nil
 }
 
 func (s *server) fetchEvent(ctx context.Context, param chan string) {
@@ -153,8 +207,8 @@ func (s *server) fetchEvent(ctx context.Context, param chan string) {
 	}
 }
 
-func (s *server) postEvent(ctx context.Context) error {
-	s.cfg.Logger.Debug("log: postEvent")
+func (s *server) storeEvent(ctx context.Context) error {
+	s.cfg.Logger.Debug("log: storeEvent")
 
 	var err error
 	var r chan string
@@ -170,8 +224,31 @@ func (s *server) postEvent(ctx context.Context) error {
 		if err = json.Unmarshal([]byte(item), &e); err != nil {
 			break
 		}
-		// TODO: postEvent
+		// TODO: storeEvent
 	}
+
+	return err
+}
+
+func (s *server) queryEvent(_ context.Context) error {
+	s.cfg.Logger.Debug("log: queryEvent")
+
+	var err error
+
+	srv := &nethttp.Server{
+		Addr:           ":" + strconv.Itoa(s.cfg.Port),
+		Handler:        s.engine,
+		ReadTimeout:    timeout,
+		WriteTimeout:   timeout,
+		MaxHeaderBytes: header,
+	}
+
+	go func() {
+		err = srv.ListenAndServe()
+		if err != nil {
+			return
+		}
+	}()
 
 	return err
 }
