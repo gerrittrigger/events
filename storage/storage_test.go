@@ -17,7 +17,7 @@ var (
 	data = []Model{
 		{
 			EventBase64:    "ZXZlbnRCYXNlNjQ=",
-			EventCreatedOn: 1672214667,
+			EventCreatedOn: 1672567200,
 		},
 	}
 )
@@ -66,14 +66,14 @@ func TestDelete(t *testing.T) {
 	ctx := context.Background()
 	s := initStorage()
 
-	var b []int
+	var b []int64
 
 	_ = s.Create(ctx, data)
 
 	err := s.Delete(ctx, b)
 	assert.NotEqual(t, nil, err)
 
-	b = []int{data[0].EventCreatedOn}
+	b = []int64{data[0].EventCreatedOn}
 
 	err = s.Delete(ctx, b)
 	assert.Equal(t, nil, err)

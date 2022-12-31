@@ -21,8 +21,8 @@ type Storage interface {
 	Init(context.Context) error
 	Deinit(context.Context) error
 	Create(context.Context, []Model) error
-	Delete(context.Context, []int) error
-	Read(context.Context, int, int) ([]Model, error)
+	Delete(context.Context, []int64) error
+	Read(context.Context, int64, int64) ([]Model, error)
 	Update(context.Context, *Model) error
 }
 
@@ -32,8 +32,9 @@ type Config struct {
 }
 
 type Model struct {
-	EventBase64    string `json:"event_base64" gorm:"type:text"`
-	EventCreatedOn int    `json:"event_created_on" gorm:"primarykey"`
+	gorm.Model
+	EventBase64    string `json:"event_base64"`
+	EventCreatedOn int64  `json:"event_created_on"`
 }
 
 type storage struct {
@@ -98,7 +99,7 @@ func (s *storage) Create(_ context.Context, data []Model) error {
 	return nil
 }
 
-func (s *storage) Delete(_ context.Context, key []int) error {
+func (s *storage) Delete(_ context.Context, key []int64) error {
 	s.cfg.Logger.Debug("storage: Delete")
 
 	var b []Model
@@ -114,7 +115,7 @@ func (s *storage) Delete(_ context.Context, key []int) error {
 	return nil
 }
 
-func (s *storage) Read(_ context.Context, since, until int) ([]Model, error) {
+func (s *storage) Read(_ context.Context, since, until int64) ([]Model, error) {
 	s.cfg.Logger.Debug("storage: Read")
 
 	var b []Model

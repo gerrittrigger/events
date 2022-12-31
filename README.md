@@ -118,8 +118,8 @@ Content-Type: application/json;charset=UTF-8
 - **Parameters**
 
 ```
-since:'TIME': Events after the give 'TIME', in the format 2023-01-01[ 12:34:56].
-until:'TIME': Events before the give 'TIME', in the format 2023-01-01[ 12:34:56].
+since:'TIME': Events after the give 'TIME', in the format 2023-01-01[ 10:00:00].
+until:'TIME': Events before the give 'TIME', in the format 2023-01-01[ 11:00:00].
 ```
 
 
@@ -127,13 +127,8 @@ until:'TIME': Events before the give 'TIME', in the format 2023-01-01[ 12:34:56]
 - **Examples**
 
 ```bash
-# Query events which happened between 2023-01-01 and 2023-02-01
-curl http://host:port/events/?q=since:2023-01-01+until:2023-02-01
-```
-
-```bash
 # Query events which happened between 2023-01-01 10:00:00 and 2023-01-01 11:00:00
-curl “http://host:port/events/?q=since:%25222023-01-01+10:00:00%2522+until:%25222023-01-01+11:00:00%2522”
+curl “http://host:port/events/?q=since:2023-01-01+10:00:00+until:2023-01-01+11:00:00”
 ```
 
 
