@@ -118,8 +118,8 @@ Content-Type: application/json;charset=UTF-8
 - **Parameters**
 
 ```
-since:'TIME': Events after the give 'TIME', in the format 2023-01-01[ 10:00:00].
-until:'TIME': Events before the give 'TIME', in the format 2023-01-01[ 11:00:00].
+since:'TIME': Events since the 'TIME', in the format 2023-01-01[ 10:00:00].
+until:'TIME': Events until the 'TIME', in the format 2023-01-01[ 11:00:00].
 ```
 
 
