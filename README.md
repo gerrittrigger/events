@@ -103,14 +103,14 @@ GET /events/ HTTP/1.0
 
 ```
 HTTP/1.1 200 OK
-Content-Disposition: attachment
 Content-Type: application/json;charset=UTF-8
-{
-  "eventBase64": "ZXZlbnRCYXNlNjQ=",
-  "eventCreatedOn": 1672214667,
+[
+  {
+    "eventBase64": "ZXZlbnRCYXNlNjQ=",
+    "eventCreatedOn": 1672214667
+  },
   ...
-}
-...
+]
 ```
 
 
