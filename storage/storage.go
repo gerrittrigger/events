@@ -3,9 +3,11 @@ package storage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/pkg/errors"
+	"github.com/robfig/cron/v3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
@@ -21,7 +23,7 @@ type Storage interface {
 	Init(context.Context) error
 	Deinit(context.Context) error
 	Create(context.Context, []Model) error
-	Delete(context.Context, []int64) error
+	Delete(context.Context, int64, int64) error
 	Read(context.Context, int64, int64) ([]Model, error)
 	Update(context.Context, *Model) error
 }
@@ -68,6 +70,12 @@ func (s *storage) Init(ctx context.Context) error {
 		return errors.Wrap(err, "failed to migrate database")
 	}
 
+	if s.cfg.Config.Spec.Storage.Autoclean != "" {
+		if err := s.autoclean(ctx); err != nil {
+			return errors.Wrap(err, "failed to autoclean database")
+		}
+	}
+
 	return nil
 }
 
@@ -99,16 +107,17 @@ func (s *storage) Create(_ context.Context, data []Model) error {
 	return nil
 }
 
-func (s *storage) Delete(_ context.Context, key []int64) error {
+func (s *storage) Delete(_ context.Context, since, until int64) error {
 	s.cfg.Logger.Debug("storage: Delete")
 
-	var b []Model
+	var b Model
 
-	if len(key) == 0 {
-		return errors.New("invalid key length")
+	if since < 0 || until < 0 {
+		return errors.New("invalid date")
 	}
 
-	if r := s.database.Delete(&b, key); r.Error != nil {
+	r := s.database.Where(fmt.Sprintf("%s >= ? AND %s < ?", PrimaryKey, PrimaryKey), since, until).Delete(&b)
+	if r.Error != nil {
 		return errors.Wrap(r.Error, "failed to delete")
 	}
 
@@ -120,7 +129,7 @@ func (s *storage) Read(_ context.Context, since, until int64) ([]Model, error) {
 
 	var b []Model
 
-	if since <= 0 || until <= 0 {
+	if since < 0 || until < 0 {
 		return nil, errors.New("invalid date")
 	}
 
@@ -145,6 +154,26 @@ func (s *storage) Update(_ context.Context, data *Model) error {
 	if r.Error != nil {
 		return errors.Wrap(r.Error, "failed to update")
 	}
+
+	return nil
+}
+
+func (s *storage) autoclean(ctx context.Context) error {
+	s.cfg.Logger.Debug("storage: autoclean")
+
+	helper := func() {
+		since := int64(0)
+		until := time.Now().Unix()
+		_ = s.Delete(ctx, since, until)
+	}
+
+	c := cron.New()
+
+	if _, err := c.AddFunc(s.cfg.Config.Spec.Storage.Autoclean, helper); err != nil {
+		return errors.Wrap(err, "failed to add func")
+	}
+
+	c.Start()
 
 	return nil
 }

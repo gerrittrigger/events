@@ -38,7 +38,8 @@ type Ssh struct {
 }
 
 type Storage struct {
-	Sqlite Sqlite `yaml:"sqlite"`
+	Autoclean string `yaml:"autoclean"`
+	Sqlite    Sqlite `yaml:"sqlite"`
 }
 
 type Sqlite struct {

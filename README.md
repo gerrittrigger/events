@@ -76,6 +76,7 @@ spec:
       port: 29418
       username: user
   storage:
+    autoclean: "@every 48h00m00s"
     sqlite:
       filename: /path/to/sqlite.db
   watchdog:
