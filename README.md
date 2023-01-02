@@ -1,7 +1,7 @@
 # events
 
 [![Build Status](https://github.com/gerrittrigger/events/workflows/ci/badge.svg?branch=main&event=push)](https://github.com/gerrittrigger/events/actions?query=workflow%3Aci)
-[![codecov](https://codecov.io/gh/gerrittrigger/events/branch/main/graph/badge.svg?token=6B10M2ZPPS)](https://codecov.io/gh/gerrittrigger/events)
+[![codecov](https://codecov.io/gh/gerrittrigger/events/branch/main/graph/badge.svg?token=JIFJKU76LT)](https://codecov.io/gh/gerrittrigger/events)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gerrittrigger/events)](https://goreportcard.com/report/github.com/gerrittrigger/events)
 [![License](https://img.shields.io/github/license/gerrittrigger/events.svg)](https://github.com/gerrittrigger/events/blob/main/LICENSE)
 [![Tag](https://img.shields.io/github/tag/gerrittrigger/events.svg)](https://github.com/gerrittrigger/events/tags)
