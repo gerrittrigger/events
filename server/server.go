@@ -24,10 +24,11 @@ import (
 )
 
 const (
-	queryLayout = "2006-01-02 15:04:05"
-	queryLength = 2
-	querySince  = "since:"
-	queryUntil  = "until:"
+	queryLayout   = "2006-01-02 15:04:05"
+	queryLength   = 2
+	queryLocation = "Local"
+	querySince    = "since:"
+	queryUntil    = "until:"
 
 	maxAge      = 24 * time.Hour
 	maxDuration = 10 * time.Second
@@ -276,7 +277,8 @@ func (s *server) queryEvent(ctx context.Context, query string) ([]httpResult, er
 
 func (s *server) parseQuery(query string) (rs, ru int64, err error) {
 	helper := func(q string) (int64, error) {
-		t, e := time.Parse(queryLayout, q)
+		loc, _ := time.LoadLocation(queryLocation)
+		t, e := time.ParseInLocation(queryLayout, q, loc)
 		if e != nil {
 			return 0, errors.Wrap(e, "invalid format")
 		}

@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	BatchSize  = 100
-	PrimaryKey = "event_created_on"
+	BatchSize    = 100
+	PrimaryKey   = "event_created_on"
+	timeLocation = "Local"
 )
 
 type Storage interface {
@@ -163,7 +164,8 @@ func (s *storage) autoclean(ctx context.Context) error {
 
 	helper := func() {
 		since := int64(0)
-		until := time.Now().Unix()
+		loc, _ := time.LoadLocation(timeLocation)
+		until := time.Now().In(loc).Unix()
 		_ = s.Delete(ctx, since, until)
 	}
 
