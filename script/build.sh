@@ -9,6 +9,6 @@ target="events"
 go env -w GOPROXY=https://goproxy.cn,direct
 
 # go tool dist list
-GIN_MODE=release CGO_ENABLED=0 GOARCH=$(go env GOARCH) GOOS=$(go env GOOS) go build -ldflags "$ldflags" -o bin/$target main.go
+GIN_MODE=release CGO_ENABLED=1 GOARCH=$(go env GOARCH) GOOS=$(go env GOOS) go build -ldflags "$ldflags" -o bin/$target main.go
 
 upx bin/$target
